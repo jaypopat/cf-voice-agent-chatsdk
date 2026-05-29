@@ -1,0 +1,13 @@
+{
+  "name": "voice-assistant",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-05-29",
+  "compatibility_flags": ["nodejs_compat"],
+  "ai": { "binding": "AI" },
+  "vectorize": [{ "binding": "VECTORIZE", "index_name": "assistant-memory" }],
+  "durable_objects": {
+    "bindings": [{ "name": "AssistantAgent", "class_name": "AssistantAgent" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["AssistantAgent"] }],
+  "vars": { "MODEL_PROFILE": "dev" }
+}
