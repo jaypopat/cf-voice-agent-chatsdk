@@ -1,19 +1,22 @@
 import { Agent } from "agents";
-import { MEMORY_SCHEMA, MemoryStore } from "../memory/store";
+import { drizzle } from "drizzle-orm/durable-sqlite";
+import { migrate } from "drizzle-orm/durable-sqlite/migrator";
+import type { DrizzleSqliteDODatabase } from "drizzle-orm/durable-sqlite";
+import migrations from "../../drizzle/migrations";
+import { MemoryStore } from "../memory/store";
 
 export class AssistantAgent extends Agent<Env> {
-  private schemaReady = false;
+  protected db: DrizzleSqliteDODatabase<Record<string, never>>;
 
-  ensureSchema(): void {
-    if (this.schemaReady) return;
-    this.sql`${MEMORY_SCHEMA as unknown as TemplateStringsArray}`;
-    // this.sql tagged template can't take a plain string — use ctx.storage.sql.exec for raw DDL
-    this.ctx.storage.sql.exec(MEMORY_SCHEMA);
-    this.schemaReady = true;
+  constructor(ctx: DurableObjectState, env: Env) {
+    super(ctx, env);
+    this.db = drizzle(ctx.storage, { logger: false });
+    ctx.blockConcurrencyWhile(async () => {
+      await migrate(this.db, migrations);
+    });
   }
 
   getMemoryStore(): MemoryStore {
-    this.ensureSchema();
-    return new MemoryStore(this.sql.bind(this));
+    return new MemoryStore(this.db);
   }
 }
