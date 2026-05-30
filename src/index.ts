@@ -2,6 +2,8 @@ import { routeAgentRequest } from "agents";
 
 // biome-ignore lint/performance/noBarrelFile: Workers entrypoint must export the Durable Object classes so the runtime can register them.
 export { AssistantAgent } from "./agents/assistant-agent";
+export { MessengerAgent } from "./agents/messenger-agent";
+export { ChatSdkStateAgent } from "./agents/state";
 export { VoiceAgent } from "./agents/voice-agent";
 
 /** Reject browser voice connections that don't carry the shared bearer token. */

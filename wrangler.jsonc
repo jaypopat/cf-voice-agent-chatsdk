@@ -9,10 +9,20 @@
   "durable_objects": {
     "bindings": [
       { "name": "AssistantAgent", "class_name": "AssistantAgent" },
-      { "name": "VoiceAgent", "class_name": "VoiceAgent" }
+      { "name": "VoiceAgent", "class_name": "VoiceAgent" },
+      { "name": "MessengerAgent", "class_name": "MessengerAgent" },
+      { "name": "ChatSdkStateAgent", "class_name": "ChatSdkStateAgent" }
     ]
   },
   "migrations": [
-    { "tag": "v1", "new_sqlite_classes": ["AssistantAgent", "VoiceAgent"] }
+    {
+      "tag": "v1",
+      "new_sqlite_classes": [
+        "AssistantAgent",
+        "VoiceAgent",
+        "MessengerAgent",
+        "ChatSdkStateAgent"
+      ]
+    }
   ]
 }

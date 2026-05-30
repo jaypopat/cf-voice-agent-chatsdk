@@ -13,6 +13,7 @@ interface Env {
   TELEGRAM_ALLOWED_CHAT_ID: string;
   // Telegram (Plan 3)
   TELEGRAM_BOT_TOKEN: string;
+  TELEGRAM_BOT_USERNAME: string;
   TELEGRAM_WEBHOOK_SECRET_TOKEN: string;
   // Reminders/timezone (Plan 4/5)
   USER_TZ: string;
