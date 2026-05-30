@@ -97,10 +97,10 @@ A method on `AssistantAgent`, reached from both channels:
 streamReply(turn: { text: string; channel: "voice" | "telegram" }): ReadableStream<Uint8Array>
 ```
 
-- Built on **AI SDK v6** `streamText({ model, system, messages, tools, stopWhen: stepCountIs(8) })` via `workers-ai-provider`.
-- **Model:** `@cf/moonshotai/kimi-k2.6` (CF's recommended agentic tool-calling model; `llama-3.3-70b-instruct-fp8-fast` is a cheaper fallback but its 24k context is tight for multi-step loops).
+- Built on **`@cloudflare/ai-utils`** `runWithTools(env.AI, model, { messages, tools }, { maxRecursiveToolRuns: 8 })` — Cloudflare's native Workers-AI function-calling loop (chosen over the Vercel AI SDK for being CF-native; supports `streamFinalResponse` for Plan 2 voice streaming).
+- **Model:** `@cf/meta/llama-3.3-70b-instruct-fp8-fast` (the single `MODELS.llm`; function-calling capable, free-tier-friendly).
 - Returns a `ReadableStream` so `VoiceAgent` speaks tokens as they arrive (DO→DO RPC supports stream returns). Telegram gets the final text (optionally streamed via message edits — refinement).
-- **Tools** (`ai` `tool({ description, inputSchema: z.object(...), execute })`):
+- **Tools** (`@cloudflare/ai-utils` format: `{ name, description, parameters: <JSON schema>, function }`; the `function` returns a JSON string):
   - `search_memory(query, topK?)` → embed query, Vectorize query, return records **with ids**; system prompt instructs the model to cite `[id]`.
   - `propose_event({ title, start, end?, location?, notes? })` → creates a `pending_action` (does **not** write to Calendar); returns the pending id.
   - `propose_reminder({ text, when })` → creates a `pending_action`; `when` resolved to an absolute datetime in the user's timezone.
@@ -244,8 +244,7 @@ Vectorize holds `{ id, values, metadata:{ snippet, kind, created_at } }`.
 | `@cloudflare/voice` | ~0.2 | **beta** — withVoice, STT/TTS, `/react` `useVoiceAgent` |
 | `chat` | ~4.29 | **Vercel** Chat SDK runtime (`new Chat`) |
 | `@chat-adapter/telegram` | ~4.29 | Telegram adapter (JSX Cards/Buttons, `onAction`) |
-| `ai` | ~6 | Vercel AI SDK v6 (`streamText`, `tool`, `stepCountIs`) — note `inputSchema`, not `parameters` |
-| `workers-ai-provider` | ~3 | AI SDK ↔ Workers AI binding |
+| `@cloudflare/ai-utils` | ~1 | Workers-AI native tool-calling loop (`runWithTools`) — JSON-schema tools, no Vercel AI SDK |
 | `zod` | ~3 | tool input schemas |
 
 Import facts that bit the original sketch: `Chat` from `chat` (not `agents/chat-sdk`); `createChatSdkState`/`ChatSdkStateAgent` from `agents/chat-sdk`; voice helpers from `@cloudflare/voice`.
@@ -303,7 +302,7 @@ README.md                  # scope, version pins, beta notes
 ## 15. Build order (construction sequence — all in scope)
 
 1. **Brain memory core** — `AssistantAgent` + SQLite `memory` + Vectorize embed/upsert/query + `search_memory`. *Remembers & recalls.*
-2. **Agentic loop** — `streamText` + tools (`search_memory`, `save_note`) + kimi-k2.6. *Captures & answers with citations (test via RPC).*
+2. **Agentic loop** — `runWithTools` + tools (`search_memory`, `save_note`) + llama-3.3-70b. *Captures & answers with citations (test via RPC).*
 3. **Browser voice** — `VoiceAgent` + `web/` `useVoiceAgent` → `brain.streamReply` spoken. *You can talk to it.*
 4. **Telegram** — `MessengerAgent` text → brain; recall from phone. *One brain, two channels, proven.*
 5. **Actions** — `calendar.ts` (Calendar REST) + `propose_event`/`propose_reminder` + `pending_action`.
@@ -331,7 +330,7 @@ README.md                  # scope, version pins, beta notes
 - **`@cloudflare/voice` is beta (~0.2.x)** — pin; expect churn. Voice streaming over DO RPC works (ReadableStream) but verify end-to-end latency; fallback = buffered text reply.
 - **Vercel Chat SDK state on Workers** — must persist across isolates; wire `state: createChatSdkState({ agent: env.ChatSdkStateAgent })` and verify locks/dedupe behave.
 - **64-byte Telegram `callback_data`** — keep `batch_id`/action ids short (counter or short ulid).
-- **kimi-k2.6** — pricier than the retired k2.5; verify tool-calling reliably bundles multiple proposals; tune system prompt + `stepCountIs`.
+- **Tool-calling reliability** — verify `runWithTools` (ai-utils) reliably bundles multiple proposals with llama-3.3-70b; tune the system prompt + `maxRecursiveToolRuns`. For Plan 2 voice streaming, use `runWithTools`'s `streamFinalResponse`.
 - **Google token** — cache access token, handle 401 refresh; `nodejs_compat` is on for the Agents SDK but Calendar uses raw fetch regardless.
 - **Timezone** — store `USER_TZ`; resolve all NL times to absolute before scheduling.
 - **Vectorize insert lag** — a few seconds before a new memory is queryable.
