@@ -8,7 +8,9 @@
     "typecheck": "tsc",
     "types": "wrangler types",
     "dev": "wrangler dev",
+    "dev:remote": "wrangler dev --remote",
     "deploy": "wrangler deploy",
+    "provision": "wrangler vectorize create assistant-memory --dimensions=1024 --metric=cosine",
     "db:generate": "drizzle-kit generate"
   },
   "devDependencies": {

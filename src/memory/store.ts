@@ -6,7 +6,7 @@ export interface NewMemory {
   id: string;
   kind: "turn" | "note" | "event" | "reminder";
   text: string;
-  channel: "voice" | "telegram" | "system";
+  channel?: string; // free-form source tag; real channels arrive with the voice/Telegram ingress
   extracted?: Record<string, unknown>;
   created_at?: number;
 }
@@ -20,7 +20,7 @@ export class MemoryStore {
       id: m.id,
       kind: m.kind,
       text: m.text,
-      channel: m.channel,
+      channel: m.channel ?? "system",
       extracted: m.extracted ? JSON.stringify(m.extracted) : null,
       createdAt: m.created_at ?? Date.now(),
       embedded: 0,

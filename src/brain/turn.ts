@@ -16,27 +16,24 @@ export interface TurnDeps {
  * the agentic loop and return the reply. Pure orchestration — all I/O is injected,
  * so it's testable without a Durable Object or live Workers AI.
  */
-export async function processTurn(
-  deps: TurnDeps,
-  turn: { text: string; channel: "voice" | "telegram" },
-): Promise<string> {
+export async function processTurn(deps: TurnDeps, text: string): Promise<string> {
   const id = crypto.randomUUID();
   const now = Date.now();
 
-  deps.store.insert({ id, kind: "turn", text: turn.text, channel: turn.channel, created_at: now });
+  deps.store.insert({ id, kind: "turn", text, created_at: now });
   try {
-    await deps.vector.upsertMemory({ id, text: turn.text, kind: "turn", created_at: now });
+    await deps.vector.upsertMemory({ id, text, kind: "turn", created_at: now });
     deps.store.markEmbedded(id);
   } catch {
     // embedding lag/failure must never block the reply
   }
 
-  const tools = makeTools({ vector: deps.vector, store: deps.store, channel: turn.channel });
+  const tools = makeTools({ vector: deps.vector, store: deps.store });
   return runTurn({
     ai: deps.ai,
     model: deps.model,
-    system: buildSystemPrompt(turn.channel),
-    userText: turn.text,
+    system: buildSystemPrompt(),
+    userText: text,
     tools,
     maxSteps: 8,
   });

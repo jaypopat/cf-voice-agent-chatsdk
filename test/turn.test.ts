@@ -5,17 +5,14 @@ describe("processTurn", () => {
   it("persists the turn, runs the loop, and returns the reply", async () => {
     // With no tool_calls in the response, runWithTools returns the model output as-is.
     const ai = { run: async () => ({ response: "Got it." }) } as unknown as Ai;
-    const inserted: Array<{ id: string; kind: string; text: string; channel: string }> = [];
+    const inserted: Array<{ kind: string; text: string }> = [];
     const store = { insert: (m: any) => inserted.push(m), markEmbedded: vi.fn() } as any;
     const vector = { query: async () => [], upsertMemory: vi.fn(async () => {}) } as any;
 
-    const reply = await processTurn(
-      { ai, model: "test-model", store, vector },
-      { text: "hello brain", channel: "telegram" },
-    );
+    const reply = await processTurn({ ai, model: "test-model", store, vector }, "hello brain");
 
     expect(reply).toBe("Got it.");
-    expect(inserted[0]).toMatchObject({ kind: "turn", text: "hello brain", channel: "telegram" });
+    expect(inserted[0]).toMatchObject({ kind: "turn", text: "hello brain" });
     expect(vector.upsertMemory).toHaveBeenCalledWith(expect.objectContaining({ text: "hello brain" }));
     expect(store.markEmbedded).toHaveBeenCalled();
   });
@@ -28,13 +25,10 @@ describe("processTurn", () => {
       upsertMemory: async () => { throw new Error("vectorize down"); },
     } as any;
 
-    const reply = await processTurn(
-      { ai, model: "m", store, vector },
-      { text: "hi", channel: "voice" },
-    );
+    const reply = await processTurn({ ai, model: "m", store, vector }, "hi");
 
     expect(reply).toBe("ok");
-    expect(store.insert).toHaveBeenCalled();        // turn still persisted
-    expect(store.markEmbedded).not.toHaveBeenCalled(); // embed threw before markEmbedded
+    expect(store.insert).toHaveBeenCalled();
+    expect(store.markEmbedded).not.toHaveBeenCalled();
   });
 });

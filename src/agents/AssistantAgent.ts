@@ -21,7 +21,7 @@ export class AssistantAgent extends Agent<Env> {
     return new MemoryStore(this.db);
   }
 
-  async handleTurn(turn: { text: string; channel: "voice" | "telegram" }): Promise<string> {
+  async handleTurn(text: string): Promise<string> {
     return processTurn(
       {
         ai: this.env.AI,
@@ -29,7 +29,7 @@ export class AssistantAgent extends Agent<Env> {
         store: this.getMemoryStore(),
         vector: new VectorIndex(this.env.AI, this.env.VECTORIZE, MODELS.embed),
       },
-      turn,
+      text,
     );
   }
 }

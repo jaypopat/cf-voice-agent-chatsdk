@@ -5,7 +5,6 @@ import type { MemoryStore } from "../memory/store";
 export interface ToolDeps {
   vector: VectorIndex;
   store: MemoryStore;
-  channel?: "voice" | "telegram" | "system";
 }
 
 export function makeTools(deps: ToolDeps): AiTextGenerationToolInputWithFunction[] {
@@ -44,7 +43,6 @@ export function makeTools(deps: ToolDeps): AiTextGenerationToolInputWithFunction
           id,
           kind: "note",
           text,
-          channel: deps.channel ?? "system",
           extracted: tags ? { tags } : undefined,
           created_at,
         });
