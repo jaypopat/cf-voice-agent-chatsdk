@@ -12,4 +12,5 @@ export const memory = sqliteTable("memory", {
 });
 
 export type MemoryRow = typeof memory.$inferSelect;
-export type NewMemory = typeof memory.$inferInsert;
+// Note: the insert shape lives in src/memory/store.ts as `NewMemory` (extracted is an
+// object there, serialized on write) — intentionally not the raw Drizzle $inferInsert.

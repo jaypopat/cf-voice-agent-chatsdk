@@ -1,5 +1,4 @@
 import { routeAgentRequest } from "agents";
-
 export { AssistantAgent } from "./agents/AssistantAgent";
 
 export default {

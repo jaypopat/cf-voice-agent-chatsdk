@@ -1,13 +1,4 @@
-export interface Models {
-  llm: string;
-  stt: string;
-  tts: string;
-  embed: string;
-}
-
-// Single model set (free-tier-friendly). Centralized here so model ids never
-// live in business logic. Swap an id later = one-line change.
-export const MODELS: Models = {
+export const MODELS = {
   llm: "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
   stt: "@cf/deepgram/flux",
   tts: "@cf/myshell-ai/melotts",
