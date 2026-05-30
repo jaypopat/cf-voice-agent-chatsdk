@@ -18,9 +18,14 @@ interface ReminderParams {
 
 /** Map a propose_event proposal's params to a Calendar event (end defaults to +1h). */
 export function mapEventParams(params: EventParams): CalendarEventInput {
-  const end =
-    params.end ??
-    new Date(Date.parse(params.start) + ONE_HOUR_MS).toISOString();
+  let end = params.end;
+  if (end === undefined) {
+    const startMs = Date.parse(params.start);
+    if (Number.isNaN(startMs)) {
+      throw new Error(`Event has no valid start time: "${params.start}"`);
+    }
+    end = new Date(startMs + ONE_HOUR_MS).toISOString();
+  }
   return {
     summary: params.title,
     start: params.start,

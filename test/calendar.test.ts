@@ -145,31 +145,3 @@ describe("GoogleCalendar.insertEvent", () => {
     expect(tokenCalls).toHaveLength(2);
   });
 });
-
-describe("GoogleCalendar.deleteEvent", () => {
-  it("resolves on a 204 No Content", async () => {
-    fetchMock.mockImplementation((input: RequestInfo | URL) => {
-      if (isTokenRequest(input)) {
-        return Promise.resolve(
-          jsonResponse({ access_token: "tok-del", expires_in: 3600 })
-        );
-      }
-      return Promise.resolve(new Response(null, { status: 204 }));
-    });
-
-    const cal = new GoogleCalendar(creds, createCache());
-    await expect(cal.deleteEvent("evt-del")).resolves.toBeUndefined();
-
-    const deleteCall = fetchMock.mock.calls.find(
-      ([input]) => !isTokenRequest(input)
-    );
-    if (!deleteCall) {
-      throw new Error("expected a delete request");
-    }
-    const [url, init] = deleteCall as [string, RequestInit];
-    expect(url).toBe(
-      "https://www.googleapis.com/calendar/v3/calendars/primary/events/evt-del"
-    );
-    expect(init.method).toBe("DELETE");
-  });
-});

@@ -22,7 +22,7 @@ export const pendingAction = sqliteTable("pending_action", {
   batchId: text("batch_id").notNull(), // groups one turn's proposals into one confirm
   type: text("type").notNull(), // event | reminder
   params: text("params").notNull(), // JSON
-  status: text("status").notNull().default("pending"), // pending | confirmed | done | failed | cancelled
+  status: text("status").notNull().default("pending"), // pending | done | failed | cancelled
   externalRef: text("external_ref"), // calendar event id, once executed
   createdAt: integer("created_at").notNull(),
 });

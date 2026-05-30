@@ -61,7 +61,7 @@ export function createMessengerChat(env: Env) {
     if (
       !(
         batchId &&
-        isAllowedSender(event.user.userId, env.TELEGRAM_ALLOWED_CHAT_ID)
+        isAllowedSender(event.user?.userId ?? "", env.TELEGRAM_ALLOWED_CHAT_ID)
       )
     ) {
       return;

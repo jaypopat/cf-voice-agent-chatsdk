@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import type { DrizzleSqliteDODatabase } from "drizzle-orm/durable-sqlite";
 import { memory } from "./schema";
 
@@ -35,14 +35,5 @@ export class MemoryStore {
 
   getById(id: string) {
     return this.db.select().from(memory).where(eq(memory.id, id)).get();
-  }
-
-  recent(limit: number) {
-    return this.db
-      .select()
-      .from(memory)
-      .orderBy(desc(memory.seq))
-      .limit(limit)
-      .all();
   }
 }

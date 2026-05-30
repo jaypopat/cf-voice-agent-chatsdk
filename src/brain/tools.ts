@@ -1,5 +1,6 @@
 import type { AiTextGenerationToolInputWithFunction } from "@cloudflare/ai-utils";
 import type { PendingStore } from "../actions/pending";
+import { shortId } from "../ids";
 import type { MemoryStore } from "../memory/store";
 import type { VectorIndex } from "../memory/vector";
 
@@ -11,9 +12,6 @@ export interface ToolDeps {
   store: MemoryStore;
   vector: VectorIndex;
 }
-
-const SHORT_ID_LEN = 8;
-const shortId = () => crypto.randomUUID().slice(0, SHORT_ID_LEN);
 
 function recallTools(deps: ToolDeps): AiTextGenerationToolInputWithFunction[] {
   return [

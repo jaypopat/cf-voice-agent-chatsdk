@@ -3,12 +3,7 @@ import type { DrizzleSqliteDODatabase } from "drizzle-orm/durable-sqlite";
 import { type PendingActionRow, pendingAction } from "../memory/schema";
 
 export type PendingType = "event" | "reminder";
-export type PendingStatus =
-  | "pending"
-  | "confirmed"
-  | "done"
-  | "failed"
-  | "cancelled";
+export type PendingStatus = "pending" | "done" | "failed" | "cancelled";
 
 export interface NewPendingAction {
   batchId: string;

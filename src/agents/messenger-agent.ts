@@ -19,15 +19,17 @@ export class MessengerAgent extends Agent<Env> {
 
   /** Push a plain message to the user's Telegram DM. */
   async notify(text: string): Promise<void> {
-    const chat = createMessengerChat(this.env);
-    const thread = chat.thread(dmThreadId(this.env.TELEGRAM_ALLOWED_CHAT_ID));
-    await thread.post(text);
+    await this.dmThread().post(text);
   }
 
   /** Push a one-tap confirm card bundling this turn's proposed actions. */
   async notifyConfirm(batchId: string, summaries: string[]): Promise<void> {
-    const chat = createMessengerChat(this.env);
-    const thread = chat.thread(dmThreadId(this.env.TELEGRAM_ALLOWED_CHAT_ID));
-    await thread.post(buildConfirmCard(batchId, summaries));
+    await this.dmThread().post(buildConfirmCard(batchId, summaries));
+  }
+
+  private dmThread() {
+    return createMessengerChat(this.env).thread(
+      dmThreadId(this.env.TELEGRAM_ALLOWED_CHAT_ID)
+    );
   }
 }

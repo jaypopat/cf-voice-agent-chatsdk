@@ -4,20 +4,6 @@ import { describe, expect, it } from "vitest";
 import { getMemoryStoreFor } from "./helpers/memory-harness";
 
 describe("MemoryStore (Drizzle)", () => {
-  it("inserts and lists rows in newest-first order", async () => {
-    const stub = env.AssistantAgent.get(
-      env.AssistantAgent.idFromName("test-mem")
-    );
-    await runInDurableObject(stub, (instance) => {
-      const store = getMemoryStoreFor(instance);
-      store.insert({ id: "m1", kind: "note", text: "buy milk" });
-      store.insert({ id: "m2", kind: "turn", text: "hello" });
-      const rows = store.recent(10);
-      expect(rows.map((r) => r.id)).toEqual(["m2", "m1"]);
-      expect(rows[0].text).toBe("hello");
-    });
-  });
-
   it("getById returns one row or undefined", async () => {
     const stub = env.AssistantAgent.get(
       env.AssistantAgent.idFromName("test-mem2")

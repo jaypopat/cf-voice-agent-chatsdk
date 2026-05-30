@@ -1,11 +1,10 @@
 import type { PendingStore } from "../actions/pending";
+import { shortId } from "../ids";
 import type { MemoryStore } from "../memory/store";
 import type { VectorIndex } from "../memory/vector";
 import { runTurn } from "./loop";
 import { buildSystemPrompt } from "./prompt";
 import { makeTools } from "./tools";
-
-const BATCH_ID_LEN = 8;
 
 export interface TurnDeps {
   ai: Ai;
@@ -44,7 +43,7 @@ export async function processTurn(
     // embedding lag/failure must never block the reply
   }
 
-  const batchId = crypto.randomUUID().slice(0, BATCH_ID_LEN);
+  const batchId = shortId();
   const tools = makeTools({
     vector: deps.vector,
     store: deps.store,

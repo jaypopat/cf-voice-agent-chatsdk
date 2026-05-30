@@ -25,24 +25,8 @@ interface TokenResponse {
   expires_in: number;
 }
 
-interface EventDateTime {
-  date?: string;
-  dateTime?: string;
-  timeZone?: string;
-}
-
 interface EventResource {
-  description?: string;
-  end?: EventDateTime;
-  htmlLink?: string;
   id: string;
-  location?: string;
-  start?: EventDateTime;
-  summary?: string;
-}
-
-interface EventListResponse {
-  items?: EventResource[];
 }
 
 const TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
@@ -57,84 +41,18 @@ export class GoogleCalendar {
     private readonly cache: TokenCache
   ) {}
 
-  async insertEvent(
-    input: CalendarEventInput
-  ): Promise<{ id: string; htmlLink?: string }> {
+  async insertEvent(input: CalendarEventInput): Promise<{ id: string }> {
     const res = await this.authedFetch(this.eventsUrl(), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(this.toEventBody(input)),
-    });
-    const event = (await res.json()) as EventResource;
-    return { id: event.id, htmlLink: event.htmlLink };
-  }
-
-  async listEvents(
-    timeMin: string,
-    timeMax: string
-  ): Promise<
-    Array<{ id: string; summary?: string; start?: string; end?: string }>
-  > {
-    const params = new URLSearchParams({
-      timeMin,
-      timeMax,
-      singleEvents: "true",
-      orderBy: "startTime",
-    });
-    const url = `${this.eventsUrl()}?${params.toString()}`;
-    const res = await this.authedFetch(url, { method: "GET" });
-    const body = (await res.json()) as EventListResponse;
-    return (body.items ?? []).map((item) => ({
-      id: item.id,
-      summary: item.summary,
-      start: readDateTime(item.start),
-      end: readDateTime(item.end),
-    }));
-  }
-
-  async patchEvent(
-    eventId: string,
-    patch: Partial<CalendarEventInput>
-  ): Promise<{ id: string }> {
-    const url = `${this.eventsUrl()}/${encodeURIComponent(eventId)}`;
-    const res = await this.authedFetch(url, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(this.toEventBody(patch)),
+      body: JSON.stringify(toEventBody(input)),
     });
     const event = (await res.json()) as EventResource;
     return { id: event.id };
   }
 
-  async deleteEvent(eventId: string): Promise<void> {
-    const url = `${this.eventsUrl()}/${encodeURIComponent(eventId)}`;
-    await this.authedFetch(url, { method: "DELETE" });
-  }
-
   private eventsUrl(): string {
     return `${CALENDAR_API_BASE}/${encodeURIComponent(this.creds.calendarId)}/events`;
-  }
-
-  private toEventBody(
-    input: Partial<CalendarEventInput>
-  ): Record<string, unknown> {
-    const body: Record<string, unknown> = {};
-    if (input.summary !== undefined) {
-      body.summary = input.summary;
-    }
-    if (input.location !== undefined) {
-      body.location = input.location;
-    }
-    if (input.description !== undefined) {
-      body.description = input.description;
-    }
-    if (input.start !== undefined) {
-      body.start = { dateTime: input.start };
-    }
-    if (input.end !== undefined) {
-      body.end = { dateTime: input.end };
-    }
-    return body;
   }
 
   private async authedFetch(url: string, init: RequestInit): Promise<Response> {
@@ -194,9 +112,14 @@ export class GoogleCalendar {
   }
 }
 
-function readDateTime(slot: EventDateTime | undefined): string | undefined {
-  if (!slot) {
-    return;
-  }
-  return slot.dateTime ?? slot.date;
+function toEventBody(input: CalendarEventInput): Record<string, unknown> {
+  return {
+    summary: input.summary,
+    start: { dateTime: input.start },
+    end: { dateTime: input.end },
+    ...(input.location === undefined ? {} : { location: input.location }),
+    ...(input.description === undefined
+      ? {}
+      : { description: input.description }),
+  };
 }

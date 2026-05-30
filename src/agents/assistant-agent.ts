@@ -15,6 +15,7 @@ import {
   reminderParams,
   summarizePending,
 } from "../confirm/gate";
+import type { PendingActionRow } from "../memory/schema";
 import { MemoryStore } from "../memory/store";
 import { VectorIndex } from "../memory/vector";
 
@@ -77,11 +78,17 @@ export class AssistantAgent extends Agent<Env> {
     // the reach channel; the reply already told the user to confirm there.
     const proposed = this.pending().byBatch(result.batchId);
     if (proposed.length > 0) {
-      const messenger = await this.messenger();
-      await messenger.notifyConfirm(
-        result.batchId,
-        proposed.map(summarizePending)
-      );
+      try {
+        const messenger = await this.messenger();
+        await messenger.notifyConfirm(
+          result.batchId,
+          proposed.map(summarizePending)
+        );
+      } catch {
+        // Telegram push failed; the proposals are durable and the reply already
+        // told the user to confirm — don't fail the turn (a webhook retry would
+        // re-run the whole LLM turn and duplicate the proposals).
+      }
     }
     return result.reply;
   }
@@ -91,24 +98,28 @@ export class AssistantAgent extends Agent<Env> {
     const rows = this.pending()
       .byBatch(batchId)
       .filter((r) => r.status === "pending");
+    if (rows.length === 0) {
+      return;
+    }
     const receipts: string[] = [];
     for (const row of rows) {
       // The fiber guards the external mutation: durable + exactly-once across
-      // eviction/retry, keyed by the action id.
-      await this.startFiber(
-        `exec:${row.id}`,
-        () => this.executeAction(row.id),
-        {
-          idempotencyKey: row.id,
-          waitForCompletion: true,
-        }
-      );
-      receipts.push(summarizePending(row));
+      // eviction/retry, keyed by the action id. A failure on one action must
+      // not abort the rest, and the user always gets a per-action receipt.
+      try {
+        await this.startFiber(
+          `exec:${row.id}`,
+          () => this.executeAction(row.id),
+          { idempotencyKey: row.id, waitForCompletion: true }
+        );
+        receipts.push(`✅ ${summarizePending(row)}`);
+      } catch (err) {
+        this.pending().setStatus(row.id, "failed");
+        receipts.push(`❌ ${summarizePending(row)} (${String(err)})`);
+      }
     }
-    if (receipts.length > 0) {
-      const messenger = await this.messenger();
-      await messenger.notify(`✅ Done:\n${receipts.join("\n")}`);
-    }
+    const messenger = await this.messenger();
+    await messenger.notify(receipts.join("\n"));
   }
 
   async cancelBatch(batchId: string): Promise<void> {
@@ -129,9 +140,11 @@ export class AssistantAgent extends Agent<Env> {
     if (!row || row.status !== "scheduled") {
       return;
     }
+    // Mark fired before delivering: a DO alarm retries on throw, so deliver
+    // at-most-once rather than risk a duplicate buzz if Telegram is briefly down.
+    reminders.markFired(payload.reminderId);
     const messenger = await this.messenger();
     await messenger.notify(`⏰ ${row.text}`);
-    reminders.markFired(payload.reminderId);
   }
 
   private async executeAction(id: string): Promise<void> {
@@ -141,30 +154,53 @@ export class AssistantAgent extends Agent<Env> {
       return;
     }
     if (row.type === "event") {
-      if (!row.externalRef) {
-        const event = await this.calendar().insertEvent(
-          mapEventParams(eventParams(row))
-        );
-        pending.setExternalRef(id, event.id);
-        this.getMemoryStore().insert({
-          id: crypto.randomUUID(),
-          kind: "event",
-          text: summarizePending(row),
-        });
-      }
+      await this.insertEventAction(id, row, pending);
     } else {
-      const params = reminderParams(row);
-      const fireAt = Date.parse(params.when);
-      const schedule = await this.schedule(new Date(fireAt), "fireReminder", {
-        reminderId: id,
-      });
-      new ReminderStore(this.db).insert({
-        id,
-        text: params.text,
-        fireAt,
-        scheduleId: schedule.id,
-      });
+      await this.scheduleReminderAction(id, row);
     }
     pending.setStatus(id, "done");
+  }
+
+  private async insertEventAction(
+    id: string,
+    row: PendingActionRow,
+    pending: PendingStore
+  ): Promise<void> {
+    if (row.externalRef) {
+      return; // already created on a prior fiber run
+    }
+    const event = await this.calendar().insertEvent(
+      mapEventParams(eventParams(row))
+    );
+    pending.setExternalRef(id, event.id);
+    this.getMemoryStore().insert({
+      id: crypto.randomUUID(),
+      kind: "event",
+      text: summarizePending(row),
+    });
+  }
+
+  private async scheduleReminderAction(
+    id: string,
+    row: PendingActionRow
+  ): Promise<void> {
+    const reminders = new ReminderStore(this.db);
+    if (reminders.byId(id)) {
+      return; // already scheduled on a prior fiber run
+    }
+    const params = reminderParams(row);
+    const fireAt = Date.parse(params.when);
+    if (Number.isNaN(fireAt)) {
+      throw new Error(`Reminder has no valid time: "${params.when}"`);
+    }
+    const schedule = await this.schedule(new Date(fireAt), "fireReminder", {
+      reminderId: id,
+    });
+    reminders.insert({
+      id,
+      text: params.text,
+      fireAt,
+      scheduleId: schedule.id,
+    });
   }
 }
