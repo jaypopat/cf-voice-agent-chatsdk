@@ -28,7 +28,6 @@ export class AssistantAgent extends Agent<Env> {
         model: MODELS.llm,
         store: this.getMemoryStore(),
         vector: new VectorIndex(this.env.AI, this.env.VECTORIZE, MODELS.embed),
-        newId: () => crypto.randomUUID(),
       },
       turn,
     );

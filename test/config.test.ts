@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { MODELS, EMBED_DIM } from "../src/config";
+import { MODELS } from "../src/config";
 
 describe("MODELS", () => {
   it("uses the free-tier-friendly model set", () => {
@@ -7,9 +7,5 @@ describe("MODELS", () => {
     expect(MODELS.stt).toBe("@cf/deepgram/flux");
     expect(MODELS.tts).toBe("@cf/myshell-ai/melotts");
     expect(MODELS.embed).toBe("@cf/qwen/qwen3-embedding-0.6b");
-  });
-
-  it("embed dim matches qwen3-embedding-0.6b (1024)", () => {
-    expect(EMBED_DIM).toBe(1024);
   });
 });

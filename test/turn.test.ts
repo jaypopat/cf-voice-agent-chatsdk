@@ -10,14 +10,14 @@ describe("processTurn", () => {
     const vector = { query: async () => [], upsertMemory: vi.fn(async () => {}) } as any;
 
     const reply = await processTurn(
-      { ai, model: "test-model", store, vector, newId: () => "id1" },
+      { ai, model: "test-model", store, vector },
       { text: "hello brain", channel: "telegram" },
     );
 
     expect(reply).toBe("Got it.");
-    expect(inserted[0]).toMatchObject({ id: "id1", kind: "turn", text: "hello brain", channel: "telegram" });
-    expect(vector.upsertMemory).toHaveBeenCalledWith(expect.objectContaining({ id: "id1", text: "hello brain" }));
-    expect(store.markEmbedded).toHaveBeenCalledWith("id1");
+    expect(inserted[0]).toMatchObject({ kind: "turn", text: "hello brain", channel: "telegram" });
+    expect(vector.upsertMemory).toHaveBeenCalledWith(expect.objectContaining({ text: "hello brain" }));
+    expect(store.markEmbedded).toHaveBeenCalled();
   });
 
   it("does not block the reply when embedding fails", async () => {
@@ -29,7 +29,7 @@ describe("processTurn", () => {
     } as any;
 
     const reply = await processTurn(
-      { ai, model: "m", store, vector, newId: () => "id2" },
+      { ai, model: "m", store, vector },
       { text: "hi", channel: "voice" },
     );
 

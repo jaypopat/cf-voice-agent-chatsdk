@@ -5,19 +5,16 @@ export interface VectorMatch {
   kind: string;
   created_at: number;
 }
-
-interface EmbeddingResponse { shape: number[]; data: number[][]; }
-
 export class VectorIndex {
   constructor(
     private ai: Ai,
     private vz: VectorizeIndex,
     private embedModel: string,
-  ) {}
+  ) { }
 
   private async embed(text: string): Promise<number[]> {
-    const r = (await this.ai.run(this.embedModel, { text: [text] })) as unknown as EmbeddingResponse;
-    return r.data[0];
+    const { data } = (await this.ai.run(this.embedModel, { text: [text] })) as AiTextEmbeddingsOutput;
+    return data[0];
   }
 
   async upsertMemory(m: { id: string; text: string; kind: string; created_at: number }): Promise<void> {
@@ -30,7 +27,7 @@ export class VectorIndex {
   async query(text: string, topK: number): Promise<VectorMatch[]> {
     const v = await this.embed(text);
     const res = await this.vz.query(v, { topK, returnMetadata: "all" });
-    return res.matches.map((m: any) => ({
+    return res.matches.map((m) => ({
       id: m.id,
       score: m.score,
       snippet: String(m.metadata?.snippet ?? ""),

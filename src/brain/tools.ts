@@ -3,9 +3,8 @@ import type { VectorIndex } from "../memory/vector";
 import type { MemoryStore } from "../memory/store";
 
 export interface ToolDeps {
-  vector: Pick<VectorIndex, "query" | "upsertMemory">;
-  store: Pick<MemoryStore, "insert" | "markEmbedded">;
-  newId: () => string;
+  vector: VectorIndex;
+  store: MemoryStore;
   channel?: "voice" | "telegram" | "system";
 }
 
@@ -39,7 +38,7 @@ export function makeTools(deps: ToolDeps): AiTextGenerationToolInputWithFunction
         required: ["text"],
       },
       function: async ({ text, tags }: { text: string; tags?: string[] }) => {
-        const id = deps.newId();
+        const id = crypto.randomUUID();
         const created_at = Date.now();
         deps.store.insert({
           id,

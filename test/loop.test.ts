@@ -10,7 +10,7 @@ describe("runTurn", () => {
     const ai = { run: async () => ({ response: "You have one note: buy milk [m1]." }) } as unknown as Ai;
     const vector = { query: async () => [], upsertMemory: async () => {} } as any;
     const store = { insert: () => {}, markEmbedded: () => {} } as any;
-    const tools = makeTools({ vector, store, newId: () => "id1" });
+    const tools = makeTools({ vector, store });
     const text = await runTurn({ ai, model: MODELS.llm, system: "sys", userText: "what notes do I have?", tools, maxSteps: 4 });
     expect(text).toContain("buy milk");
   });

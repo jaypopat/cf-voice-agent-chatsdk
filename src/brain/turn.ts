@@ -7,9 +7,8 @@ import { runTurn } from "./loop";
 export interface TurnDeps {
   ai: Ai;
   model: string;
-  store: Pick<MemoryStore, "insert" | "markEmbedded">;
-  vector: Pick<VectorIndex, "query" | "upsertMemory">;
-  newId: () => string;
+  store: MemoryStore;
+  vector: VectorIndex;
 }
 
 /**
@@ -21,7 +20,7 @@ export async function processTurn(
   deps: TurnDeps,
   turn: { text: string; channel: "voice" | "telegram" },
 ): Promise<string> {
-  const id = deps.newId();
+  const id = crypto.randomUUID();
   const now = Date.now();
 
   deps.store.insert({ id, kind: "turn", text: turn.text, channel: turn.channel, created_at: now });
@@ -32,7 +31,7 @@ export async function processTurn(
     // embedding lag/failure must never block the reply
   }
 
-  const tools = makeTools({ vector: deps.vector, store: deps.store, newId: deps.newId, channel: turn.channel });
+  const tools = makeTools({ vector: deps.vector, store: deps.store, channel: turn.channel });
   return runTurn({
     ai: deps.ai,
     model: deps.model,
