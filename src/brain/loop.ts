@@ -47,5 +47,11 @@ export async function streamTurn(
   args: RunTurnArgs
 ): Promise<ReadableStream<Uint8Array>> {
   const result = await run(args, true);
-  return result as ReadableStream<Uint8Array>;
+  // streamFinalResponse makes runWithTools resolve to a ReadableStream, but the
+  // shared output type doesn't reflect that — fail loudly rather than hand the
+  // voice pipeline a non-stream it would silently speak as nothing.
+  if (!(result instanceof ReadableStream)) {
+    throw new Error("streamTurn: runWithTools did not return a stream");
+  }
+  return result;
 }

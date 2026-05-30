@@ -1,6 +1,8 @@
-import type { AssistantAgent } from "../../src/agents/assistant-agent";
-import type { MemoryStore } from "../../src/memory/store";
+import type { DrizzleSqliteDODatabase } from "drizzle-orm/durable-sqlite";
+import { MemoryStore } from "../../src/memory/store";
 
-export function getMemoryStoreFor(instance: AssistantAgent): MemoryStore {
-  return instance.getMemoryStore();
+// The brain's Drizzle db is private; tests reach it by structural cast (the same
+// approach as pending.test.ts) so we don't widen the agent's surface for tests.
+export function getMemoryStoreFor(instance: unknown): MemoryStore {
+  return new MemoryStore((instance as { db: DrizzleSqliteDODatabase }).db);
 }

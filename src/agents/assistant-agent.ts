@@ -42,7 +42,7 @@ export class AssistantAgent extends Agent<Env> {
     ctx.blockConcurrencyWhile(() => migrate(this.db, migrations));
   }
 
-  getMemoryStore(): MemoryStore {
+  private memory(): MemoryStore {
     return new MemoryStore(this.db);
   }
 
@@ -70,7 +70,7 @@ export class AssistantAgent extends Agent<Env> {
     return {
       ai: this.env.AI,
       model: MODELS.llm,
-      store: this.getMemoryStore(),
+      store: this.memory(),
       vector: new VectorIndex(this.env.AI, this.env.VECTORIZE, MODELS.embed),
       pending: this.pending(),
       tz: this.env.USER_TZ,
@@ -191,7 +191,7 @@ export class AssistantAgent extends Agent<Env> {
       mapEventParams(eventParams(row))
     );
     pending.setExternalRef(id, event.id);
-    this.getMemoryStore().insert({
+    this.memory().insert({
       id: crypto.randomUUID(),
       kind: "event",
       text: summarizePending(row),
