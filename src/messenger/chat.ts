@@ -55,5 +55,24 @@ export function createMessengerChat(env: Env) {
     await thread.post(reply);
   });
 
+  // Confirm/Change taps on a proposal card. The button value is the batch id.
+  chat.onAction(["confirm", "cancel"], async (event) => {
+    const batchId = event.value;
+    if (
+      !(
+        batchId &&
+        isAllowedSender(event.user.userId, env.TELEGRAM_ALLOWED_CHAT_ID)
+      )
+    ) {
+      return;
+    }
+    const brain = await getAgentByName(env.AssistantAgent, "main");
+    if (event.actionId === "confirm") {
+      await brain.confirmBatch(batchId);
+    } else {
+      await brain.cancelBatch(batchId);
+    }
+  });
+
   return chat;
 }

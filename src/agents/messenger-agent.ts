@@ -1,4 +1,5 @@
 import { Agent } from "agents";
+import { buildConfirmCard } from "../messenger/cards";
 import { createMessengerChat, dmThreadId } from "../messenger/chat";
 
 /**
@@ -21,5 +22,12 @@ export class MessengerAgent extends Agent<Env> {
     const chat = createMessengerChat(this.env);
     const thread = chat.thread(dmThreadId(this.env.TELEGRAM_ALLOWED_CHAT_ID));
     await thread.post(text);
+  }
+
+  /** Push a one-tap confirm card bundling this turn's proposed actions. */
+  async notifyConfirm(batchId: string, summaries: string[]): Promise<void> {
+    const chat = createMessengerChat(this.env);
+    const thread = chat.thread(dmThreadId(this.env.TELEGRAM_ALLOWED_CHAT_ID));
+    await thread.post(buildConfirmCard(batchId, summaries));
   }
 }
