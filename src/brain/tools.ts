@@ -42,23 +42,13 @@ function recallTools(deps: ToolDeps): AiTextGenerationToolInputWithFunction[] {
         type: "object",
         properties: {
           text: { type: "string", description: "The fact to remember" },
-          tags: {
-            type: "array",
-            description: "Optional tags (array of strings)",
-          },
         },
         required: ["text"],
       },
-      function: async ({ text, tags }: { text: string; tags?: string[] }) => {
+      function: async ({ text }: { text: string }) => {
         const id = crypto.randomUUID();
         const created_at = Date.now();
-        deps.store.insert({
-          id,
-          kind: "note",
-          text,
-          extracted: tags ? { tags } : undefined,
-          created_at,
-        });
+        deps.store.insert({ id, kind: "note", text, created_at });
         await deps.vector.upsertMemory({ id, text, kind: "note", created_at });
         deps.store.markEmbedded(id);
         return JSON.stringify({ saved: true, id });

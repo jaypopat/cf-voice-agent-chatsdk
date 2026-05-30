@@ -5,7 +5,6 @@ import { memory } from "./schema";
 export interface NewMemory {
   channel?: string; // free-form source tag; real channels arrive with the voice/Telegram ingress
   created_at?: number;
-  extracted?: Record<string, unknown>;
   id: string;
   kind: "turn" | "note" | "event" | "reminder";
   text: string;
@@ -22,7 +21,6 @@ export class MemoryStore {
         kind: m.kind,
         text: m.text,
         channel: m.channel ?? "system",
-        extracted: m.extracted ? JSON.stringify(m.extracted) : null,
         createdAt: m.created_at ?? Date.now(),
         embedded: 0,
       })

@@ -27,22 +27,4 @@ describe("MemoryStore (Drizzle)", () => {
       expect(store.getById("e1")?.embedded).toBe(1);
     });
   });
-
-  it("extracted round-trip: serialized correctly and parses back", async () => {
-    const stub = env.AssistantAgent.get(
-      env.AssistantAgent.idFromName("test-mem4")
-    );
-    await runInDurableObject(stub, (instance) => {
-      const store = getMemoryStoreFor(instance);
-      store.insert({
-        id: "ex1",
-        kind: "note",
-        text: "tagged item",
-        extracted: { tags: ["x"] },
-      });
-      const extracted = store.getById("ex1")?.extracted;
-      expect(extracted).not.toBeNull();
-      expect(JSON.parse(extracted as string)).toEqual({ tags: ["x"] });
-    });
-  });
 });
