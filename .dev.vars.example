@@ -1,0 +1,13 @@
+# Local secrets for `wrangler dev`. Copy to `.dev.vars` (gitignored) and fill in.
+# In production these are set with `wrangler secret put <NAME>` instead. See SETUP.md.
+
+BROWSER_AUTH_TOKEN=
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_BOT_USERNAME=
+TELEGRAM_ALLOWED_CHAT_ID=
+TELEGRAM_WEBHOOK_SECRET_TOKEN=
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_REFRESH_TOKEN=
+GOOGLE_CALENDAR_ID=primary
+USER_TZ=America/New_York
