@@ -10,10 +10,10 @@ function fakeVectorize() {
   const store: any[] = [];
   return {
     _store: store,
-    insert: vi.fn(async (vs: any[]) => {
+    insert: vi.fn((vs: any[]) => {
       store.push(...vs);
     }),
-    upsert: vi.fn(async (vs: any[]) => {
+    upsert: vi.fn((vs: any[]) => {
       store.push(...vs);
     }),
     query: vi.fn(async (_v: number[], opts: any) => ({

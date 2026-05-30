@@ -8,7 +8,7 @@ describe("MemoryStore (Drizzle)", () => {
     const stub = env.AssistantAgent.get(
       env.AssistantAgent.idFromName("test-mem")
     );
-    await runInDurableObject(stub, async (instance) => {
+    await runInDurableObject(stub, (instance) => {
       const store = getMemoryStoreFor(instance);
       store.insert({ id: "m1", kind: "note", text: "buy milk" });
       store.insert({ id: "m2", kind: "turn", text: "hello" });
@@ -22,7 +22,7 @@ describe("MemoryStore (Drizzle)", () => {
     const stub = env.AssistantAgent.get(
       env.AssistantAgent.idFromName("test-mem2")
     );
-    await runInDurableObject(stub, async (instance) => {
+    await runInDurableObject(stub, (instance) => {
       const store = getMemoryStoreFor(instance);
       store.insert({ id: "x1", kind: "note", text: "abc" });
       expect(store.getById("x1")?.text).toBe("abc");
@@ -34,7 +34,7 @@ describe("MemoryStore (Drizzle)", () => {
     const stub = env.AssistantAgent.get(
       env.AssistantAgent.idFromName("test-mem3")
     );
-    await runInDurableObject(stub, async (instance) => {
+    await runInDurableObject(stub, (instance) => {
       const store = getMemoryStoreFor(instance);
       store.insert({ id: "e1", kind: "note", text: "embed me" });
       store.markEmbedded("e1");
@@ -46,7 +46,7 @@ describe("MemoryStore (Drizzle)", () => {
     const stub = env.AssistantAgent.get(
       env.AssistantAgent.idFromName("test-mem4")
     );
-    await runInDurableObject(stub, async (instance) => {
+    await runInDurableObject(stub, (instance) => {
       const store = getMemoryStoreFor(instance);
       store.insert({
         id: "ex1",
@@ -54,9 +54,9 @@ describe("MemoryStore (Drizzle)", () => {
         text: "tagged item",
         extracted: { tags: ["x"] },
       });
-      const row = store.getById("ex1");
-      expect(row?.extracted).not.toBeNull();
-      expect(JSON.parse(row!.extracted!)).toEqual({ tags: ["x"] });
+      const extracted = store.getById("ex1")?.extracted;
+      expect(extracted).not.toBeNull();
+      expect(JSON.parse(extracted as string)).toEqual({ tags: ["x"] });
     });
   });
 });

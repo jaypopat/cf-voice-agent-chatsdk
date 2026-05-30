@@ -21,7 +21,7 @@ export class AssistantAgent extends Agent<Env> {
     return new MemoryStore(this.db);
   }
 
-  async handleTurn(text: string): Promise<string> {
+  handleTurn(text: string): Promise<string> {
     return processTurn(
       {
         ai: this.env.AI,

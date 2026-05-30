@@ -12,7 +12,7 @@ describe("processTurn", () => {
     } as any;
     const vector = {
       query: async () => [],
-      upsertMemory: vi.fn(async () => {}),
+      upsertMemory: vi.fn(() => Promise.resolve()),
     } as any;
 
     const reply = await processTurn(
@@ -33,9 +33,7 @@ describe("processTurn", () => {
     const store = { insert: vi.fn(), markEmbedded: vi.fn() } as any;
     const vector = {
       query: async () => [],
-      upsertMemory: async () => {
-        throw new Error("vectorize down");
-      },
+      upsertMemory: () => Promise.reject(new Error("vectorize down")),
     } as any;
 
     const reply = await processTurn({ ai, model: "m", store, vector }, "hi");

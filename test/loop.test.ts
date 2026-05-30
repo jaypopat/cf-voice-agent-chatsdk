@@ -12,9 +12,12 @@ describe("runTurn", () => {
     } as unknown as Ai;
     const vector = {
       query: async () => [],
-      upsertMemory: async () => {},
+      upsertMemory: () => Promise.resolve(),
     } as any;
-    const store = { insert: () => {}, markEmbedded: () => {} } as any;
+    const store = {
+      insert: () => undefined,
+      markEmbedded: () => undefined,
+    } as any;
     const tools = makeTools({ vector, store });
     const text = await runTurn({
       ai,

@@ -7,9 +7,9 @@ export interface VectorMatch {
 }
 export class VectorIndex {
   constructor(
-    private ai: Ai,
-    private vz: VectorizeIndex,
-    private embedModel: string
+    private readonly ai: Ai,
+    private readonly vz: VectorizeIndex,
+    private readonly embedModel: string
   ) {}
 
   private async embed(text: string): Promise<number[]> {

@@ -5,8 +5,14 @@
   "compatibility_flags": ["nodejs_compat"],
   "ai": { "binding": "AI" },
   "vectorize": [{ "binding": "VECTORIZE", "index_name": "assistant-memory" }],
+  "assets": { "directory": "./web/dist" },
   "durable_objects": {
-    "bindings": [{ "name": "AssistantAgent", "class_name": "AssistantAgent" }]
+    "bindings": [
+      { "name": "AssistantAgent", "class_name": "AssistantAgent" },
+      { "name": "VoiceAgent", "class_name": "VoiceAgent" }
+    ]
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["AssistantAgent"] }]
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["AssistantAgent", "VoiceAgent"] }
+  ]
 }

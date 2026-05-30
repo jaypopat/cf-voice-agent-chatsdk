@@ -32,7 +32,7 @@ describe("makeTools", () => {
   });
 
   it("save_note inserts to store and upserts to the index", async () => {
-    const vector = { upsertMemory: vi.fn(async () => {}) } as any;
+    const vector = { upsertMemory: vi.fn(() => Promise.resolve()) } as any;
     const store = { insert: vi.fn(), markEmbedded: vi.fn() } as any;
     const tools = makeTools({ vector, store });
     const out = JSON.parse(

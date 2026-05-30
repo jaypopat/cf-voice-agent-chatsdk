@@ -12,7 +12,7 @@ export interface NewMemory {
 }
 
 export class MemoryStore {
-  constructor(private db: DrizzleSqliteDODatabase) {}
+  constructor(private readonly db: DrizzleSqliteDODatabase) {}
 
   insert(m: NewMemory): void {
     this.db
