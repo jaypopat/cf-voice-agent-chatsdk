@@ -6,26 +6,19 @@ A single-user personal assistant you **talk to** (browser voice) and **reach** (
 
 ## Architecture
 
-Four Durable Objects (Agents SDK). The **brain** is a single `AssistantAgent` instance named `"main"`; voice and Telegram are thin ingress skins over it.
+Four Durable Objects. The **brain** is a single `AssistantAgent` ("main") that owns memory, the agentic loop, actions, and the confirm gate. Voice and Telegram are thin ingress that call it over DO RPC; the brain pushes confirms and reminders back out through Telegram.
 
 ```
-Browser mic ──WS──▶ VoiceAgent ─┐                Telegram ──webhook──▶ MessengerAgent ─┐
- (useVoiceAgent)  withVoice:     │ DO RPC          (Chat SDK) onDirectMessage,         │ DO RPC
-                  Flux STT/Aura  │                 onAction(confirm), notify()         │
-                  TTS, onTurn    ▼                                                      ▼
-              ┌──────────────── AssistantAgent ("main") — THE BRAIN ───────────────────────┐
-              │ agentic loop: @cloudflare/ai-utils runWithTools + llama-3.3-70b            │
-              │ tools: search_memory · save_note · propose_event · propose_reminder         │
-              │ memory: Drizzle SQLite (records) + Vectorize (qwen3-embedding-0.6b)          │
-              │ actions: Google Calendar REST · reminders via this.schedule()               │
-              │ confirm gate: pending_action rows → confirmBatch() → idempotent exec fibers  │
-              └──────────────────────────────────────────────────────────────────────────────┘
-                          ChatSdkStateAgent ← persists Chat SDK locks/queues (sub-agent)
+VoiceAgent      (browser voice) ─┐
+                                 ├──▶ AssistantAgent "main" ──▶ Telegram (confirm cards, reminders)
+MessengerAgent  (Telegram)      ─┘         the brain
 ```
 
-- **Memory is the substrate.** Every turn/note/action is stored and embedded; recall is semantic (`search_memory`), and the model cites memory ids `[id]`.
-- **Confirm before mutate, cross-channel.** `propose_*` tools never touch the outside world — they write `pending_action` rows. A turn's proposals bundle into one Telegram confirm card; a tap runs `confirmBatch`, which executes each action in an **idempotent fiber** (exactly-once across eviction/retry) and pushes a receipt.
-- **Reminders** are Durable Object alarms (`this.schedule(date, "fireReminder", …)`) pushed to Telegram when they fire.
+`ChatSdkStateAgent` is a fourth DO that persists the Chat SDK's state. Three ideas drive the design:
+
+- **Memory is the substrate.** Every turn and action is embedded; recall is semantic and the model cites memory ids `[id]`.
+- **Confirm before mutate, cross-channel.** Action tools only write `pending_action` rows; a turn's proposals bundle into one Telegram confirm card, and a tap executes them in **idempotent fibers** (exactly-once across eviction/retry).
+- **Reminders** are Durable Object alarms pushed to Telegram when they fire.
 
 ## Stack
 
