@@ -47,4 +47,36 @@ describe("makeTools", () => {
     expect(out.saved).toBe(true);
     expect(typeof out.id).toBe("string");
   });
+
+  it("omits propose tools when no pending store is wired", () => {
+    const vector = {} as any;
+    const store = {} as any;
+    const names = makeTools({ vector, store }).map((t) => t.name);
+    expect(names).not.toContain("propose_event");
+    expect(names).not.toContain("propose_reminder");
+  });
+
+  it("propose_event records a pending action under the batch", async () => {
+    const vector = {} as any;
+    const store = {} as any;
+    const pending = { insert: vi.fn() } as any;
+    const tools = makeTools({ vector, store, pending, batchId: "batch1" });
+    const out = JSON.parse(
+      await byName(
+        tools,
+        "propose_event"
+      )({
+        title: "Dentist",
+        start: "2026-06-04T14:00:00-04:00",
+      })
+    );
+    expect(out.proposed).toBe(true);
+    expect(pending.insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        batchId: "batch1",
+        type: "event",
+        params: expect.objectContaining({ title: "Dentist" }),
+      })
+    );
+  });
 });

@@ -15,8 +15,9 @@ describe("processTurn", () => {
       upsertMemory: vi.fn(() => Promise.resolve()),
     } as any;
 
-    const reply = await processTurn(
-      { ai, model: "test-model", store, vector },
+    const pending = { insert: vi.fn() } as any;
+    const { reply } = await processTurn(
+      { ai, model: "test-model", store, vector, pending, tz: "UTC" },
       "hello brain"
     );
 
@@ -36,7 +37,11 @@ describe("processTurn", () => {
       upsertMemory: () => Promise.reject(new Error("vectorize down")),
     } as any;
 
-    const reply = await processTurn({ ai, model: "m", store, vector }, "hi");
+    const pending = { insert: vi.fn() } as any;
+    const { reply } = await processTurn(
+      { ai, model: "m", store, vector, pending, tz: "UTC" },
+      "hi"
+    );
 
     expect(reply).toBe("ok");
     expect(store.insert).toHaveBeenCalled();

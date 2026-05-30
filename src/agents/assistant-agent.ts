@@ -3,6 +3,7 @@ import type { DrizzleSqliteDODatabase } from "drizzle-orm/durable-sqlite";
 import { drizzle } from "drizzle-orm/durable-sqlite";
 import { migrate } from "drizzle-orm/durable-sqlite/migrator";
 import migrations from "../../drizzle/migrations";
+import { PendingStore } from "../actions/pending";
 import { processTurn } from "../brain/turn";
 import { MODELS } from "../config";
 import { MemoryStore } from "../memory/store";
@@ -21,15 +22,18 @@ export class AssistantAgent extends Agent<Env> {
     return new MemoryStore(this.db);
   }
 
-  handleTurn(text: string): Promise<string> {
-    return processTurn(
+  async handleTurn(text: string): Promise<string> {
+    const result = await processTurn(
       {
         ai: this.env.AI,
         model: MODELS.llm,
         store: this.getMemoryStore(),
         vector: new VectorIndex(this.env.AI, this.env.VECTORIZE, MODELS.embed),
+        pending: new PendingStore(this.db),
+        tz: this.env.USER_TZ,
       },
       text
     );
+    return result.reply;
   }
 }
