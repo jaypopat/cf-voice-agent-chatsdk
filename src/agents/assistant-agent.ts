@@ -7,7 +7,11 @@ import { GoogleCalendar } from "../actions/calendar";
 import { DrizzleTokenCache } from "../actions/google-token";
 import { PendingStore } from "../actions/pending";
 import { ReminderStore } from "../actions/reminders";
-import { processTurn } from "../brain/turn";
+import {
+  processTurn,
+  processTurnStreaming,
+  type TurnDeps,
+} from "../brain/turn";
 import { MODELS } from "../config";
 import {
   eventParams,
@@ -25,8 +29,9 @@ interface ReminderPayload {
 
 /**
  * THE BRAIN. Owns memory, the agentic loop, and the confirm gate. Both ingress
- * channels (voice, Telegram) address the single instance "main" and call
- * handleTurn; the confirm gate executes proposed actions exactly once.
+ * channels address the single instance "main": Telegram calls handleTurn (buffered),
+ * voice calls streamReply (token stream). The confirm gate executes proposed
+ * actions exactly once.
  */
 export class AssistantAgent extends Agent<Env> {
   protected db: DrizzleSqliteDODatabase;
@@ -61,36 +66,49 @@ export class AssistantAgent extends Agent<Env> {
     return await getAgentByName(this.env.MessengerAgent, "main");
   }
 
-  async handleTurn(text: string): Promise<string> {
-    const result = await processTurn(
-      {
-        ai: this.env.AI,
-        model: MODELS.llm,
-        store: this.getMemoryStore(),
-        vector: new VectorIndex(this.env.AI, this.env.VECTORIZE, MODELS.embed),
-        pending: this.pending(),
-        tz: this.env.USER_TZ,
-      },
-      text
-    );
+  private turnDeps(): TurnDeps {
+    return {
+      ai: this.env.AI,
+      model: MODELS.llm,
+      store: this.getMemoryStore(),
+      vector: new VectorIndex(this.env.AI, this.env.VECTORIZE, MODELS.embed),
+      pending: this.pending(),
+      tz: this.env.USER_TZ,
+    };
+  }
 
-    // If the model proposed any actions, bundle them into one confirm card on
-    // the reach channel; the reply already told the user to confirm there.
-    const proposed = this.pending().byBatch(result.batchId);
-    if (proposed.length > 0) {
-      try {
-        const messenger = await this.messenger();
-        await messenger.notifyConfirm(
-          result.batchId,
-          proposed.map(summarizePending)
-        );
-      } catch {
-        // Telegram push failed; the proposals are durable and the reply already
-        // told the user to confirm — don't fail the turn (a webhook retry would
-        // re-run the whole LLM turn and duplicate the proposals).
-      }
-    }
+  /** Buffered turn for Telegram (text). Returns the whole reply. */
+  async handleTurn(text: string): Promise<string> {
+    const result = await processTurn(this.turnDeps(), text);
+    await this.pushConfirm(result.batchId);
     return result.reply;
+  }
+
+  /**
+   * Streamed turn for browser voice. Tool calls have already run by the time this
+   * resolves, so the confirm card is pushed before the spoken reply starts; only
+   * the final reply streams, spoken sentence-by-sentence by the voice pipeline.
+   */
+  async streamReply(text: string): Promise<ReadableStream<Uint8Array>> {
+    const result = await processTurnStreaming(this.turnDeps(), text);
+    await this.pushConfirm(result.batchId);
+    return result.stream;
+  }
+
+  /** Bundle any actions proposed this turn into one confirm card on the reach channel. */
+  private async pushConfirm(batchId: string): Promise<void> {
+    const proposed = this.pending().byBatch(batchId);
+    if (proposed.length === 0) {
+      return;
+    }
+    try {
+      const messenger = await this.messenger();
+      await messenger.notifyConfirm(batchId, proposed.map(summarizePending));
+    } catch {
+      // Telegram push failed; the proposals are durable and the reply already
+      // told the user to confirm — don't fail the turn (a webhook/voice retry
+      // would re-run the whole LLM turn and duplicate the proposals).
+    }
   }
 
   /** Execute every pending action in a batch, exactly once, then push a receipt. */

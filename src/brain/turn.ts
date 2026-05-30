@@ -2,9 +2,11 @@ import type { PendingStore } from "../actions/pending";
 import { shortId } from "../ids";
 import type { MemoryStore } from "../memory/store";
 import type { VectorIndex } from "../memory/vector";
-import { runTurn } from "./loop";
+import { type RunTurnArgs, runTurn, streamTurn } from "./loop";
 import { buildSystemPrompt } from "./prompt";
 import { makeTools } from "./tools";
+
+const MAX_STEPS = 8;
 
 export interface TurnDeps {
   ai: Ai;
@@ -22,16 +24,20 @@ export interface TurnResult {
   reply: string;
 }
 
+export interface StreamTurnResult {
+  batchId: string;
+  stream: ReadableStream<Uint8Array>;
+}
+
 /**
- * One conversational turn: persist it to memory, best-effort embed it, then run
- * the agentic loop. Pure orchestration — all I/O is injected, so it's testable
- * without a Durable Object or live Workers AI. Any actions the model proposes
- * land under `batchId` in the pending_action table for the confirm gate.
+ * Persist the turn, best-effort embed it, and assemble the loop arguments shared
+ * by the buffered and streaming paths. Any actions the model proposes during the
+ * loop land under the returned `batchId` for the confirm gate.
  */
-export async function processTurn(
+async function beginTurn(
   deps: TurnDeps,
   text: string
-): Promise<TurnResult> {
+): Promise<{ args: RunTurnArgs; batchId: string }> {
   const id = crypto.randomUUID();
   const now = Date.now();
 
@@ -50,16 +56,42 @@ export async function processTurn(
     pending: deps.pending,
     batchId,
   });
-  const reply = await runTurn({
-    ai: deps.ai,
-    model: deps.model,
-    system: buildSystemPrompt({
-      now: new Date(now).toISOString(),
-      tz: deps.tz,
-    }),
-    userText: text,
-    tools,
-    maxSteps: 8,
-  });
+  return {
+    batchId,
+    args: {
+      ai: deps.ai,
+      model: deps.model,
+      system: buildSystemPrompt({
+        now: new Date(now).toISOString(),
+        tz: deps.tz,
+      }),
+      userText: text,
+      tools,
+      maxSteps: MAX_STEPS,
+    },
+  };
+}
+
+/** One conversational turn, buffered (Telegram). Pure orchestration — testable without a DO. */
+export async function processTurn(
+  deps: TurnDeps,
+  text: string
+): Promise<TurnResult> {
+  const { args, batchId } = await beginTurn(deps, text);
+  const reply = await runTurn(args);
   return { reply, batchId };
+}
+
+/**
+ * One conversational turn, streamed (voice). Tool calls finish before the promise
+ * resolves, so `batchId`'s proposals are already persisted; only the final reply
+ * streams, so the caller can push the confirm card before the first token speaks.
+ */
+export async function processTurnStreaming(
+  deps: TurnDeps,
+  text: string
+): Promise<StreamTurnResult> {
+  const { args, batchId } = await beginTurn(deps, text);
+  const stream = await streamTurn(args);
+  return { stream, batchId };
 }

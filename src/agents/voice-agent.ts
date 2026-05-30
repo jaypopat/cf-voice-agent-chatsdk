@@ -16,8 +16,10 @@ export class VoiceAgent extends withVoice(Agent<Env>) {
   async onTurn(
     transcript: string,
     _context: VoiceTurnContext
-  ): Promise<string> {
+  ): Promise<ReadableStream<Uint8Array>> {
     const brain = await getAgentByName(this.env.AssistantAgent, "main");
-    return await brain.handleTurn(transcript);
+    // Streamed reply: the voice pipeline speaks it sentence-by-sentence as tokens
+    // arrive, instead of waiting for the whole reply to buffer.
+    return await brain.streamReply(transcript);
   }
 }
