@@ -1,10 +1,19 @@
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import type { DrizzleSqliteDODatabase } from "drizzle-orm/durable-sqlite";
-import { memory, NewMemory } from "./schema";
+import { memory } from "./schema";
+
+export interface NewMemory {
+  id: string;
+  kind: "turn" | "note" | "event" | "reminder";
+  text: string;
+  channel: "voice" | "telegram" | "system";
+  extracted?: Record<string, unknown>;
+  created_at?: number;
+}
 
 
 export class MemoryStore {
-  constructor(private db: DrizzleSqliteDODatabase<Record<string, never>>) { }
+  constructor(private db: DrizzleSqliteDODatabase) { }
 
   insert(m: NewMemory): void {
     this.db.insert(memory).values({
@@ -13,7 +22,7 @@ export class MemoryStore {
       text: m.text,
       channel: m.channel,
       extracted: m.extracted ? JSON.stringify(m.extracted) : null,
-      createdAt: m.createdAt ?? Date.now(),
+      createdAt: m.created_at ?? Date.now(),
       embedded: 0,
     }).run();
   }
@@ -27,6 +36,6 @@ export class MemoryStore {
   }
 
   recent(limit: number) {
-    return this.db.select().from(memory).orderBy(memory.seq).limit(limit).all();
+    return this.db.select().from(memory).orderBy(desc(memory.seq)).limit(limit).all();
   }
 }
