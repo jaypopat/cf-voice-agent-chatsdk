@@ -1,21 +1,15 @@
 import { describe, it, expect } from "vitest";
-import { resolveModels } from "../src/config";
+import { MODELS, EMBED_DIM } from "../src/config";
 
-describe("resolveModels", () => {
-  it("returns dev models for the dev profile", () => {
-    const m = resolveModels("dev");
-    expect(m.llm).toBe("@cf/meta/llama-3.3-70b-instruct-fp8-fast");
-    expect(m.tts).toBe("@cf/myshell-ai/melotts");
-    expect(m.embed).toBe("@cf/qwen/qwen3-embedding-0.6b");
+describe("MODELS", () => {
+  it("uses the free-tier-friendly model set", () => {
+    expect(MODELS.llm).toBe("@cf/meta/llama-3.3-70b-instruct-fp8-fast");
+    expect(MODELS.stt).toBe("@cf/deepgram/flux");
+    expect(MODELS.tts).toBe("@cf/myshell-ai/melotts");
+    expect(MODELS.embed).toBe("@cf/qwen/qwen3-embedding-0.6b");
   });
 
-  it("returns prod models for the prod profile", () => {
-    const m = resolveModels("prod");
-    expect(m.llm).toBe("@cf/moonshotai/kimi-k2.6");
-    expect(m.tts).toBe("@cf/deepgram/aura-1");
-  });
-
-  it("defaults to dev for unknown/empty", () => {
-    expect(resolveModels(undefined).llm).toBe("@cf/meta/llama-3.3-70b-instruct-fp8-fast");
+  it("embed dim matches qwen3-embedding-0.6b (1024)", () => {
+    expect(EMBED_DIM).toBe(1024);
   });
 });

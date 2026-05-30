@@ -8,6 +8,5 @@
   "durable_objects": {
     "bindings": [{ "name": "AssistantAgent", "class_name": "AssistantAgent" }]
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["AssistantAgent"] }],
-  "vars": { "MODEL_PROFILE": "dev" }
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["AssistantAgent"] }]
 }

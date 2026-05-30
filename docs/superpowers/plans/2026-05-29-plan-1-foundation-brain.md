@@ -10,6 +10,10 @@
 
 **Spec:** `docs/superpowers/specs/2026-05-29-cf-voice-chat-agent-design.md` (§5 brain, §6 memory, §11 data model, §12 models).
 
+**Revisions (2026-05-29, mid-execution):**
+- **No model profiles** — `src/config.ts` exports a single `MODELS` constant (the cheap/free set); no dev/prod switch, no `MODEL_PROFILE` var. (Task 1 below shows the old profile version — superseded.)
+- **Drizzle, not raw SQL** — persistence uses `drizzle-orm/durable-sqlite` (schema in `src/memory/schema.ts`, Drizzle query builder). The raw-SQL code in Task 2 below is superseded by the Drizzle implementation; Task 7's agent uses `MODELS` directly + the Drizzle db.
+
 ---
 
 ## Plan roadmap (this is Plan 1 of 6)

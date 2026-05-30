@@ -191,6 +191,8 @@ Earlier framing ("a fiber suspends across the wait") was wrong. Correct, idempot
 
 ## 11. Data model (`AssistantAgent` SQLite)
 
+Persisted with **Drizzle** (`drizzle-orm/durable-sqlite`) over the Agent's Durable Object SQLite — schema in `src/memory/schema.ts`, queried via the Drizzle query builder (no raw SQL). The logical shape:
+
 ```
 memory {
   id          text pk    // ulid
@@ -225,16 +227,16 @@ Vectorize holds `{ id, values, metadata:{ snippet, kind, created_at } }`.
 
 ## 12. Models & packages
 
-**Model profiles** (same code, swap ids via config — keeps dev free):
+**Models** (single set, free-tier-friendly — centralized in `src/config.ts` as `MODELS`, never hardcoded in logic):
 
-| Purpose | **Dev profile** (free-optimized) | **Prod profile** (quality) |
-|---|---|---|
-| Agentic loop | `@cf/meta/llama-3.3-70b-instruct-fp8-fast` | `@cf/moonshotai/kimi-k2.6` |
-| STT (browser) | `@cf/deepgram/flux` | `@cf/deepgram/flux` |
-| TTS (browser) | `@cf/myshell-ai/melotts` (~73× cheaper) | `@cf/deepgram/aura-1` |
-| Embeddings | `@cf/qwen/qwen3-embedding-0.6b` (1024-dim) | same |
+| Purpose | Model |
+|---|---|
+| Agentic loop | `@cf/meta/llama-3.3-70b-instruct-fp8-fast` |
+| STT (browser) | `@cf/deepgram/flux` |
+| TTS (browser) | `@cf/myshell-ai/melotts` |
+| Embeddings | `@cf/qwen/qwen3-embedding-0.6b` (1024-dim) |
 
-**Cost reality:** everything but Workers AI is $0 at solo scale (incl. SQLite Durable Objects — now free). Workers AI has a shared **10,000 Neurons/day** free allowance; voice dominates it (~1,350 Neurons/frontier-voice turn → ~7/day free). Text-first or dev-profile iteration stays $0; sustained voice/frontier needs **Workers Paid ($5/mo)** + cheap metered Neurons. Models are configured (not hardcoded) so the profile is one env switch.
+**Cost reality:** everything but Workers AI is $0 at solo scale (incl. SQLite Durable Objects — now free). Workers AI has a shared **10,000 Neurons/day** free allowance across all models. With this set a voice turn ≈ ~900 Neurons (Flux STT ~700 + melotts TTS ~13 + llama loop ~200) → ~11 voice turns/day free; text turns are far cheaper. Text-first iteration stays $0; sustained daily voice needs **Workers Paid ($5/mo)** + cheap metered Neurons ($0.011/1k). Model ids live only in `MODELS`, so swapping later is a one-line change. (Dropped the earlier dev/prod profile split as over-engineering.)
 
 | Package | Version | Note |
 |---|---|---|
