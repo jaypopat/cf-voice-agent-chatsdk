@@ -4,9 +4,19 @@ import { migrate } from "drizzle-orm/durable-sqlite/migrator";
 import type { DrizzleSqliteDODatabase } from "drizzle-orm/durable-sqlite";
 import migrations from "../../drizzle/migrations";
 import { MemoryStore } from "../memory/store";
+import { createWorkersAI } from "workers-ai-provider";
+import type { LanguageModel } from "ai";
+import { VectorIndex } from "../memory/vector";
+import { makeTools } from "../brain/tools";
+import { buildSystemPrompt } from "../brain/prompt";
+import { runTurn } from "../brain/loop";
+import { MODELS } from "../config";
 
 export class AssistantAgent extends Agent<Env> {
   protected db: DrizzleSqliteDODatabase;
+
+  private testModel?: LanguageModel;
+  private testVector?: Pick<VectorIndex, "query" | "upsertMemory">;
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -17,4 +27,41 @@ export class AssistantAgent extends Agent<Env> {
   getMemoryStore(): MemoryStore {
     return new MemoryStore(this.db);
   }
+
+  private vector(): Pick<VectorIndex, "query" | "upsertMemory"> {
+    return this.testVector ?? new VectorIndex(this.env.AI, this.env.VECTORIZE, MODELS.embed);
+  }
+
+  private model(): LanguageModel {
+    if (this.testModel) return this.testModel;
+    const workersai = createWorkersAI({ binding: this.env.AI });
+    return workersai(MODELS.llm);
+  }
+
+  async handleTurn(turn: { text: string; channel: "voice" | "telegram" }): Promise<string> {
+    const store = this.getMemoryStore();
+    const vector = this.vector();
+    const turnId = crypto.randomUUID();
+    const now = Date.now();
+    store.insert({ id: turnId, kind: "turn", text: turn.text, channel: turn.channel, created_at: now });
+    try {
+      await vector.upsertMemory({ id: turnId, text: turn.text, kind: "turn", created_at: now });
+      store.markEmbedded(turnId);
+    } catch {
+      // embedding lag/failure must never block the reply
+    }
+    const tools = makeTools({ vector, store, newId: () => crypto.randomUUID(), channel: turn.channel });
+    return runTurn({
+      model: this.model(),
+      system: buildSystemPrompt(turn.channel),
+      userText: turn.text,
+      tools,
+      maxSteps: 8,
+    });
+  }
+
+  // ---- test seams (used only by tests) ----
+  __setTestModel(m: LanguageModel) { this.testModel = m; }
+  __setTestVector(v: Pick<VectorIndex, "query" | "upsertMemory">) { this.testVector = v; }
+  testRecent(n: number) { return this.getMemoryStore().recent(n); }
 }
