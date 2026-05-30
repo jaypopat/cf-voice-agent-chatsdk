@@ -3,6 +3,6 @@ export const MODELS = {
   stt: "@cf/deepgram/flux",
   tts: "@cf/myshell-ai/melotts",
   embed: "@cf/qwen/qwen3-embedding-0.6b",
-};
+} as const;
 
 export const EMBED_DIM = 1024; // qwen3-embedding-0.6b output dimension

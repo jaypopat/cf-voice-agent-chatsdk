@@ -1,5 +1,4 @@
-import { tool } from "ai";
-import { z } from "zod";
+import type { AiTextGenerationToolInputWithFunction } from "@cloudflare/ai-utils";
 import type { VectorIndex } from "../memory/vector";
 import type { MemoryStore } from "../memory/store";
 
@@ -10,26 +9,36 @@ export interface ToolDeps {
   channel?: "voice" | "telegram" | "system";
 }
 
-export function makeTools(deps: ToolDeps) {
-  return {
-    search_memory: tool({
+export function makeTools(deps: ToolDeps): AiTextGenerationToolInputWithFunction[] {
+  return [
+    {
+      name: "search_memory",
       description: "Search the user's long-term memory for relevant past notes, turns, and actions.",
-      inputSchema: z.object({
-        query: z.string().describe("What to search for"),
-        topK: z.number().int().min(1).max(20).default(5),
-      }),
-      execute: async ({ query, topK }) => {
-        const matches = await deps.vector.query(query, topK);
-        return { matches };
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "What to search for" },
+          topK: { type: "number", description: "How many results to return (1-20)" },
+        },
+        required: ["query"],
       },
-    }),
-    save_note: tool({
+      function: async ({ query, topK }: { query: string; topK?: number }) => {
+        const matches = await deps.vector.query(query, topK ?? 5);
+        return JSON.stringify({ matches });
+      },
+    },
+    {
+      name: "save_note",
       description: "Persist a fact worth remembering to long-term memory.",
-      inputSchema: z.object({
-        text: z.string().describe("The fact to remember"),
-        tags: z.array(z.string()).optional(),
-      }),
-      execute: async ({ text, tags }) => {
+      parameters: {
+        type: "object",
+        properties: {
+          text: { type: "string", description: "The fact to remember" },
+          tags: { type: "array", description: "Optional tags (array of strings)" },
+        },
+        required: ["text"],
+      },
+      function: async ({ text, tags }: { text: string; tags?: string[] }) => {
         const id = deps.newId();
         const created_at = Date.now();
         deps.store.insert({
@@ -42,8 +51,8 @@ export function makeTools(deps: ToolDeps) {
         });
         await deps.vector.upsertMemory({ id, text, kind: "note", created_at });
         deps.store.markEmbedded(id);
-        return { saved: true, id };
+        return JSON.stringify({ saved: true, id });
       },
-    }),
-  };
+    },
+  ];
 }

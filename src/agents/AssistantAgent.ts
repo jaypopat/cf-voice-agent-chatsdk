@@ -4,8 +4,6 @@ import { migrate } from "drizzle-orm/durable-sqlite/migrator";
 import type { DrizzleSqliteDODatabase } from "drizzle-orm/durable-sqlite";
 import migrations from "../../drizzle/migrations";
 import { MemoryStore } from "../memory/store";
-import { createWorkersAI } from "workers-ai-provider";
-import type { LanguageModel } from "ai";
 import { VectorIndex } from "../memory/vector";
 import { makeTools } from "../brain/tools";
 import { buildSystemPrompt } from "../brain/prompt";
@@ -15,7 +13,7 @@ import { MODELS } from "../config";
 export class AssistantAgent extends Agent<Env> {
   protected db: DrizzleSqliteDODatabase;
 
-  private testModel?: LanguageModel;
+  private testAI?: Ai;
   private testVector?: Pick<VectorIndex, "query" | "upsertMemory">;
 
   constructor(ctx: DurableObjectState, env: Env) {
@@ -32,10 +30,8 @@ export class AssistantAgent extends Agent<Env> {
     return this.testVector ?? new VectorIndex(this.env.AI, this.env.VECTORIZE, MODELS.embed);
   }
 
-  private model(): LanguageModel {
-    if (this.testModel) return this.testModel;
-    const workersai = createWorkersAI({ binding: this.env.AI });
-    return workersai(MODELS.llm);
+  private ai(): Ai {
+    return this.testAI ?? this.env.AI;
   }
 
   async handleTurn(turn: { text: string; channel: "voice" | "telegram" }): Promise<string> {
@@ -52,7 +48,8 @@ export class AssistantAgent extends Agent<Env> {
     }
     const tools = makeTools({ vector, store, newId: () => crypto.randomUUID(), channel: turn.channel });
     return runTurn({
-      model: this.model(),
+      ai: this.ai(),
+      model: MODELS.llm,
       system: buildSystemPrompt(turn.channel),
       userText: turn.text,
       tools,
@@ -61,7 +58,7 @@ export class AssistantAgent extends Agent<Env> {
   }
 
   // ---- test seams (used only by tests) ----
-  __setTestModel(m: LanguageModel) { this.testModel = m; }
+  __setTestAI(ai: Ai) { this.testAI = ai; }
   __setTestVector(v: Pick<VectorIndex, "query" | "upsertMemory">) { this.testVector = v; }
   testRecent(n: number) { return this.getMemoryStore().recent(n); }
 }
