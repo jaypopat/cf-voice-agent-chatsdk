@@ -6,3 +6,5 @@ worker-configuration.d.ts
 .DS_Store
 docs/
 CLAUDE.md
+
+.zed/

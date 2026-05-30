@@ -1,22 +1,28 @@
 import type { AiTextGenerationToolInputWithFunction } from "@cloudflare/ai-utils";
-import type { VectorIndex } from "../memory/vector";
 import type { MemoryStore } from "../memory/store";
+import type { VectorIndex } from "../memory/vector";
 
 export interface ToolDeps {
-  vector: VectorIndex;
   store: MemoryStore;
+  vector: VectorIndex;
 }
 
-export function makeTools(deps: ToolDeps): AiTextGenerationToolInputWithFunction[] {
+export function makeTools(
+  deps: ToolDeps
+): AiTextGenerationToolInputWithFunction[] {
   return [
     {
       name: "search_memory",
-      description: "Search the user's long-term memory for relevant past notes, turns, and actions.",
+      description:
+        "Search the user's long-term memory for relevant past notes, turns, and actions.",
       parameters: {
         type: "object",
         properties: {
           query: { type: "string", description: "What to search for" },
-          topK: { type: "number", description: "How many results to return (1-20)" },
+          topK: {
+            type: "number",
+            description: "How many results to return (1-20)",
+          },
         },
         required: ["query"],
       },
@@ -32,7 +38,10 @@ export function makeTools(deps: ToolDeps): AiTextGenerationToolInputWithFunction
         type: "object",
         properties: {
           text: { type: "string", description: "The fact to remember" },
-          tags: { type: "array", description: "Optional tags (array of strings)" },
+          tags: {
+            type: "array",
+            description: "Optional tags (array of strings)",
+          },
         },
         required: ["text"],
       },

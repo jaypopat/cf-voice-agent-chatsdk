@@ -1,8 +1,8 @@
 import type { MemoryStore } from "../memory/store";
 import type { VectorIndex } from "../memory/vector";
-import { makeTools } from "./tools";
-import { buildSystemPrompt } from "./prompt";
 import { runTurn } from "./loop";
+import { buildSystemPrompt } from "./prompt";
+import { makeTools } from "./tools";
 
 export interface TurnDeps {
   ai: Ai;
@@ -16,7 +16,10 @@ export interface TurnDeps {
  * the agentic loop and return the reply. Pure orchestration — all I/O is injected,
  * so it's testable without a Durable Object or live Workers AI.
  */
-export async function processTurn(deps: TurnDeps, text: string): Promise<string> {
+export async function processTurn(
+  deps: TurnDeps,
+  text: string
+): Promise<string> {
   const id = crypto.randomUUID();
   const now = Date.now();
 

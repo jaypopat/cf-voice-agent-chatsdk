@@ -1,26 +1,41 @@
 export interface VectorMatch {
+  created_at: number;
   id: string;
+  kind: string;
   score: number;
   snippet: string;
-  kind: string;
-  created_at: number;
 }
 export class VectorIndex {
   constructor(
     private ai: Ai,
     private vz: VectorizeIndex,
-    private embedModel: string,
-  ) { }
+    private embedModel: string
+  ) {}
 
   private async embed(text: string): Promise<number[]> {
-    const { data } = (await this.ai.run(this.embedModel, { text: [text] })) as AiTextEmbeddingsOutput;
+    const { data } = (await this.ai.run(this.embedModel, {
+      text: [text],
+    })) as AiTextEmbeddingsOutput;
     return data[0];
   }
 
-  async upsertMemory(m: { id: string; text: string; kind: string; created_at: number }): Promise<void> {
+  async upsertMemory(m: {
+    id: string;
+    text: string;
+    kind: string;
+    created_at: number;
+  }): Promise<void> {
     const values = await this.embed(m.text);
     await this.vz.upsert([
-      { id: m.id, values, metadata: { snippet: m.text.slice(0, 512), kind: m.kind, created_at: m.created_at } },
+      {
+        id: m.id,
+        values,
+        metadata: {
+          snippet: m.text.slice(0, 512),
+          kind: m.kind,
+          created_at: m.created_at,
+        },
+      },
     ]);
   }
 

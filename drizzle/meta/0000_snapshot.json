@@ -68,9 +68,7 @@
       "indexes": {
         "memory_id_unique": {
           "name": "memory_id_unique",
-          "columns": [
-            "id"
-          ],
+          "columns": ["id"],
           "isUnique": true
         }
       },

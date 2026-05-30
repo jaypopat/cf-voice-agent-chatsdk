@@ -1,11 +1,13 @@
-import { describe, it, expect } from "vitest";
 import { runInDurableObject } from "cloudflare:test";
 import { env } from "cloudflare:workers";
+import { describe, expect, it } from "vitest";
 import { getMemoryStoreFor } from "./helpers/memory-harness";
 
 describe("MemoryStore (Drizzle)", () => {
   it("inserts and lists rows in newest-first order", async () => {
-    const stub = env.AssistantAgent.get(env.AssistantAgent.idFromName("test-mem"));
+    const stub = env.AssistantAgent.get(
+      env.AssistantAgent.idFromName("test-mem")
+    );
     await runInDurableObject(stub, async (instance) => {
       const store = getMemoryStoreFor(instance);
       store.insert({ id: "m1", kind: "note", text: "buy milk" });
@@ -17,7 +19,9 @@ describe("MemoryStore (Drizzle)", () => {
   });
 
   it("getById returns one row or undefined", async () => {
-    const stub = env.AssistantAgent.get(env.AssistantAgent.idFromName("test-mem2"));
+    const stub = env.AssistantAgent.get(
+      env.AssistantAgent.idFromName("test-mem2")
+    );
     await runInDurableObject(stub, async (instance) => {
       const store = getMemoryStoreFor(instance);
       store.insert({ id: "x1", kind: "note", text: "abc" });
@@ -27,7 +31,9 @@ describe("MemoryStore (Drizzle)", () => {
   });
 
   it("markEmbedded sets embedded flag to 1", async () => {
-    const stub = env.AssistantAgent.get(env.AssistantAgent.idFromName("test-mem3"));
+    const stub = env.AssistantAgent.get(
+      env.AssistantAgent.idFromName("test-mem3")
+    );
     await runInDurableObject(stub, async (instance) => {
       const store = getMemoryStoreFor(instance);
       store.insert({ id: "e1", kind: "note", text: "embed me" });
@@ -37,10 +43,17 @@ describe("MemoryStore (Drizzle)", () => {
   });
 
   it("extracted round-trip: serialized correctly and parses back", async () => {
-    const stub = env.AssistantAgent.get(env.AssistantAgent.idFromName("test-mem4"));
+    const stub = env.AssistantAgent.get(
+      env.AssistantAgent.idFromName("test-mem4")
+    );
     await runInDurableObject(stub, async (instance) => {
       const store = getMemoryStoreFor(instance);
-      store.insert({ id: "ex1", kind: "note", text: "tagged item", extracted: { tags: ["x"] } });
+      store.insert({
+        id: "ex1",
+        kind: "note",
+        text: "tagged item",
+        extracted: { tags: ["x"] },
+      });
       const row = store.getById("ex1");
       expect(row?.extracted).not.toBeNull();
       expect(JSON.parse(row!.extracted!)).toEqual({ tags: ["x"] });

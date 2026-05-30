@@ -3,28 +3,30 @@ import type { DrizzleSqliteDODatabase } from "drizzle-orm/durable-sqlite";
 import { memory } from "./schema";
 
 export interface NewMemory {
+  channel?: string; // free-form source tag; real channels arrive with the voice/Telegram ingress
+  created_at?: number;
+  extracted?: Record<string, unknown>;
   id: string;
   kind: "turn" | "note" | "event" | "reminder";
   text: string;
-  channel?: string; // free-form source tag; real channels arrive with the voice/Telegram ingress
-  extracted?: Record<string, unknown>;
-  created_at?: number;
 }
 
-
 export class MemoryStore {
-  constructor(private db: DrizzleSqliteDODatabase) { }
+  constructor(private db: DrizzleSqliteDODatabase) {}
 
   insert(m: NewMemory): void {
-    this.db.insert(memory).values({
-      id: m.id,
-      kind: m.kind,
-      text: m.text,
-      channel: m.channel ?? "system",
-      extracted: m.extracted ? JSON.stringify(m.extracted) : null,
-      createdAt: m.created_at ?? Date.now(),
-      embedded: 0,
-    }).run();
+    this.db
+      .insert(memory)
+      .values({
+        id: m.id,
+        kind: m.kind,
+        text: m.text,
+        channel: m.channel ?? "system",
+        extracted: m.extracted ? JSON.stringify(m.extracted) : null,
+        createdAt: m.created_at ?? Date.now(),
+        embedded: 0,
+      })
+      .run();
   }
 
   markEmbedded(id: string): void {
@@ -36,6 +38,11 @@ export class MemoryStore {
   }
 
   recent(limit: number) {
-    return this.db.select().from(memory).orderBy(desc(memory.seq)).limit(limit).all();
+    return this.db
+      .select()
+      .from(memory)
+      .orderBy(desc(memory.seq))
+      .limit(limit)
+      .all();
   }
 }

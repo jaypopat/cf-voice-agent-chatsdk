@@ -1,12 +1,12 @@
 import { Agent } from "agents";
+import type { DrizzleSqliteDODatabase } from "drizzle-orm/durable-sqlite";
 import { drizzle } from "drizzle-orm/durable-sqlite";
 import { migrate } from "drizzle-orm/durable-sqlite/migrator";
-import type { DrizzleSqliteDODatabase } from "drizzle-orm/durable-sqlite";
 import migrations from "../../drizzle/migrations";
-import { MemoryStore } from "../memory/store";
-import { VectorIndex } from "../memory/vector";
 import { processTurn } from "../brain/turn";
 import { MODELS } from "../config";
+import { MemoryStore } from "../memory/store";
+import { VectorIndex } from "../memory/vector";
 
 export class AssistantAgent extends Agent<Env> {
   protected db: DrizzleSqliteDODatabase;
@@ -29,7 +29,7 @@ export class AssistantAgent extends Agent<Env> {
         store: this.getMemoryStore(),
         vector: new VectorIndex(this.env.AI, this.env.VECTORIZE, MODELS.embed),
       },
-      text,
+      text
     );
   }
 }
