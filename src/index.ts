@@ -6,13 +6,6 @@ export { MessengerAgent } from "./agents/messenger-agent";
 export { ChatSdkStateAgent } from "./agents/state";
 export { VoiceAgent } from "./agents/voice-agent";
 
-/** Constant-time string compare so the token check doesn't leak via timing. */
-function tokenMatches(actual: string, expected: string): boolean {
-  const a = new TextEncoder().encode(actual);
-  const b = new TextEncoder().encode(expected);
-  return a.byteLength === b.byteLength && crypto.subtle.timingSafeEqual(a, b);
-}
-
 /**
  * Reject browser voice connections that don't carry the shared bearer token.
  * Scoped to the voice agent's routing path so it can't gate other routes/assets.
@@ -23,10 +16,7 @@ function voiceAuthFails(request: Request, env: Env): boolean {
   if (!url.pathname.startsWith("/agents/voice-agent")) {
     return false;
   }
-  return !tokenMatches(
-    url.searchParams.get("token") ?? "",
-    env.BROWSER_AUTH_TOKEN
-  );
+  return url.searchParams.get("token") !== env.BROWSER_AUTH_TOKEN;
 }
 
 export default {
